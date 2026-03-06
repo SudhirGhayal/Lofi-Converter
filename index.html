@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="LoFi Studio — Upload any song and transform it into a warm, vintage lo-fi version with real-time effects, waveform visualization, and instant download.">
+  <title>LoFi Studio — Lo-Fi Song Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Grain / noise overlay -->
+  <div class="grain-overlay" aria-hidden="true"></div>
+
+  <!-- Floating particles canvas -->
+  <canvas id="particlesCanvas" aria-hidden="true"></canvas>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-icon">♫</span>
+      <h1>LoFi Studio</h1>
+    </div>
+    <p class="tagline">Transform any song into a warm, vintage lo-fi version</p>
+  </header>
+
+  <main>
+    <!-- Upload Section -->
+    <section id="uploadSection" class="upload-section">
+      <div id="dropZone" class="drop-zone">
+        <div class="drop-zone-inner">
+          <div class="drop-icon">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="30" stroke="#e8a045" stroke-width="2" stroke-dasharray="6 4" opacity="0.6" />
+              <path d="M32 20v20M24 28l8-8 8 8" stroke="#e8a045" stroke-width="2.5" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M20 42h24" stroke="#e8a045" stroke-width="2" stroke-linecap="round" opacity="0.5" />
+            </svg>
+          </div>
+          <p class="drop-text">Drop your track here</p>
+          <p class="drop-subtext">MP3 or WAV — up to 50 MB</p>
+          <label class="browse-btn" for="fileInput">Browse Files</label>
+          <input type="file" id="fileInput" accept=".mp3,.wav,audio/mpeg,audio/wav" hidden>
+        </div>
+      </div>
+      <div id="fileInfo" class="file-info hidden">
+        <span id="fileName" class="file-name"></span>
+        <button id="removeFile" class="remove-file-btn" title="Remove file">✕</button>
+      </div>
+    </section>
+
+    <!-- Studio Section (hidden until file loaded) -->
+    <section id="studioSection" class="studio-section hidden">
+      <div class="studio-grid">
+
+        <!-- Left Column: Vinyl + Controls -->
+        <div class="studio-left">
+          <!-- Vinyl Record -->
+          <div class="vinyl-container">
+            <div id="vinylRecord" class="vinyl-record">
+              <div class="vinyl-grooves"></div>
+              <div class="vinyl-label">
+                <span class="vinyl-label-text">LoFi</span>
+              </div>
+              <div class="vinyl-shine"></div>
+            </div>
+            <div class="tonearm" id="tonearm">
+              <div class="tonearm-base"></div>
+              <div class="tonearm-arm"></div>
+              <div class="tonearm-head"></div>
+            </div>
+          </div>
+
+          <!-- Playback Controls -->
+          <div class="playback-controls">
+            <button id="btnPlay" class="ctrl-btn play-btn" title="Play">
+              <svg viewBox="0 0 24 24" width="28" height="28">
+                <polygon points="6,3 20,12 6,21" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="btnPause" class="ctrl-btn pause-btn hidden" title="Pause">
+              <svg viewBox="0 0 24 24" width="28" height="28">
+                <rect x="5" y="3" width="4" height="18" fill="currentColor" />
+                <rect x="15" y="3" width="4" height="18" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="btnStop" class="ctrl-btn stop-btn" title="Stop">
+              <svg viewBox="0 0 24 24" width="28" height="28">
+                <rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor" />
+              </svg>
+            </button>
+            <button id="btnDownload" class="ctrl-btn download-btn" title="Download Lo-Fi Version">
+              <svg viewBox="0 0 24 24" width="28" height="28">
+                <path d="M12 3v13M7 12l5 5 5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" fill="none" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-container">
+            <span id="currentTime" class="time-label">0:00</span>
+            <div id="progressBar" class="progress-bar">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <span id="totalTime" class="time-label">0:00</span>
+          </div>
+        </div>
+
+        <!-- Right Column: FX + Visualizer -->
+        <div class="studio-right">
+          <!-- Waveform Visualizer -->
+          <div class="visualizer-container">
+            <canvas id="waveformCanvas"></canvas>
+            <div class="visualizer-label">WAVEFORM</div>
+          </div>
+
+          <!-- FX Sliders -->
+          <div class="fx-panel">
+            <h2 class="fx-title">Lo-Fi Effects</h2>
+            <div class="fx-sliders">
+              <div class="fx-slider-group">
+                <label for="sliderLopass">Lo-Pass</label>
+                <input type="range" id="sliderLopass" min="200" max="8000" value="3500" step="50">
+                <span class="fx-value" id="valLopass">3500 Hz</span>
+              </div>
+              <div class="fx-slider-group">
+                <label for="sliderCrackle">Crackle</label>
+                <input type="range" id="sliderCrackle" min="0" max="100" value="35" step="1">
+                <span class="fx-value" id="valCrackle">35%</span>
+              </div>
+              <div class="fx-slider-group">
+                <label for="sliderWarmth">Warmth</label>
+                <input type="range" id="sliderWarmth" min="0" max="100" value="50" step="1">
+                <span class="fx-value" id="valWarmth">50%</span>
+              </div>
+              <div class="fx-slider-group">
+                <label for="sliderReverb">Reverb</label>
+                <input type="range" id="sliderReverb" min="0" max="100" value="40" step="1">
+                <span class="fx-value" id="valReverb">40%</span>
+              </div>
+              <div class="fx-slider-group">
+                <label for="sliderWobble">Wobble</label>
+                <input type="range" id="sliderWobble" min="0" max="100" value="25" step="1">
+                <span class="fx-value" id="valWobble">25%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>LoFi Studio — All processing happens in your browser. Your audio never leaves your device.</p>
+  </footer>
+
+  <!-- Download overlay -->
+  <div id="downloadOverlay" class="download-overlay hidden">
+    <div class="download-modal">
+      <div class="download-spinner"></div>
+      <p>Rendering your lo-fi version…</p>
+      <p class="download-sub">Processing audio with all effects applied.</p>
+      <button id="cancelDownload" class="cancel-download-btn">Cancel</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
